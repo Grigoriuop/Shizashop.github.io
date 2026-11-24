@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Магазин предметов — Minecraft</title>
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);--bg:#f3f5f1;--card:#fff;--tx:#1b2418;--mu:#5d6b58;--ac:#3f9b3a;--ac2:#2e7a2a;--bd:#d8dfd3;--gold:#9a6b00}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1410;--card:#182019;--tx:#e8f0e4;--mu:#93a38d;--ac:#5fd155;--ac2:#4bb842;--bd:#27332a;--gold:#f2c14e}}
+:root[data-theme="dark"]{--bg:#0f1410;--card:#182019;--tx:#e8f0e4;--mu:#93a38d;--ac:#5fd155;--ac2:#4bb842;--bd:#27332a;--gold:#f2c14e}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.w{max-width:860px;margin:0 auto;padding:20px 14px 60px}
+h1{font-size:26px;margin:6px 0 4px}
+.sub{color:var(--mu);margin:0 0 16px}
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);padding:8px 0;display:grid;gap:8px}
+.row{display:flex;gap:8px}
+input,select{width:100%;padding:10px 12px;border:1px solid var(--bd);border-radius:10px;background:var(--card);color:var(--tx);font:inherit}
+select{width:auto;flex:none}
+.tabs{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px}
+.tab{flex:none;border:1px solid var(--bd);background:var(--card);color:var(--tx);padding:7px 13px;border-radius:99px;font:inherit;cursor:pointer}
+.tab.on{background:var(--ac);color:#08140a;border-color:var(--ac);font-weight:600}
+.sec{margin:24px 0 8px}
+.sec h2{font-size:18px;margin:0}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:14px;margin-bottom:12px;display:flex;gap:12px;align-items:flex-start;justify-content:space-between}
+.card h3{margin:0 0 4px;font-size:16px}
+.card p{margin:0;color:var(--mu);font-size:14px}
+.tag{display:inline-block;font-size:12px;border:1px solid var(--bd);border-radius:99px;padding:1px 9px;margin-bottom:6px;color:var(--mu)}
+.price{flex:none;text-align:right;font-weight:700;font-size:18px;color:var(--gold);white-space:nowrap}
+.price small{display:block;font-weight:400;font-size:11px;color:var(--mu)}
+.empty{color:var(--mu);text-align:center;padding:30px}
+h1{user-select:none;-webkit-user-select:none;touch-action:manipulation;-webkit-tap-highlight-color:transparent}.toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ac);color:#08140a;font-weight:700;padding:10px 18px;border-radius:99px;z-index:20;box-shadow:0 4px 18px rgba(0,0,0,.3);white-space:nowrap}
+</style>
+</head>
+<body>
+<div class="w">
+<h1>🛒 Магазин предметов</h1>
+<p class="sub">Что делает каждый предмет и сколько он стоит в игровом балансе. Цена указана за 1 штуку.</p>
+<div class="bar">
+<div class="row"><input id="q" type="search" placeholder="Поиск по названию…"><select id="s"><option value="0">Как в списке</option><option value="1">Дешевле</option><option value="2">Дороже</option></select></div>
+<div class="tabs" id="tabs"></div>
+</div>
+<div id="list"></div>
+</div>
+<script>
+var CUR="$";
+var CATS=[["Броня","🛡️"],["Бафы (съедобные)","🍎"],["Дебафы (бросаемые)","🧪"],["Добрые зелья","💚"],["Пранк-еда","😈"],["Особые","⭐"]];
+// [категория, название, как использовать, описание, цена]
+var D=[
+[0,"Незеритовый шлем","Надеть","Защита IV, Дыхание III, Родство с водой, Прочность III, Починка. Алмазная отделка «Молчание».",8000],
+[0,"Незеритовый нагрудник","Надеть","Защита IV, Прочность III, Починка. Отделка «Молчание».",12000],
+[0,"Незеритовые поножи","Надеть","Защита IV, Прочность III, Починка. Отделка «Молчание».",10000],
+[0,"Незеритовые ботинки","Надеть","Защита IV, Невесомость IV, Подводная ходьба III, Скорость души III, Прочность, Починка.",9000],
+[0,"Элитра","Надеть","Крылья для полёта, сами чинятся (Прочность III, Починка).",15000],
+[1,"Топор берсерка","Съесть","3 минуты: Сила IV, Скорость III, Спешка III. Только 1 штука.",1500],
+[1,"Алмаз ярости","Съесть","3 минуты: Сопротивление IV (−60% урона), Поглощение V (+10 сердец), Сила III.",1200],
+[1,"Кирка шахтёра","Съесть","3 минуты: Спешка IV (копаешь почти мгновенно) и Ночное зрение. Только 1 штука.",800],
+[1,"Яйцо драконоборца","Съесть","3 минуты: Огнестойкость, Регенерация III, Сила III.",1400],
+[1,"Яблоко титана","Съесть","5 минут почти бессмертия: Регенерация III, Сопротивление III, Поглощение V, Сила III.",2500],
+[1,"Чешуя дракона","Съесть","4 минуты танка: Сопротивление IV, Поглощение VI (+12 сердец), Регенерация III, Огнестойкость.",2000],
+[1,"Сердце моря","Съесть","5 минут под водой: дыхание, Благодать дельфина, Регенерация III, Скорость III.",1000],
+[1,"Зов героя","Съесть","5 минут: Герой деревни (скидки у жителей), Удача IV, Спешка IV.",700],
+[1,"Кристалл ветра","Съесть","5 минут мобильности: Прыгучесть IV, Плавное падение, Скорость IV.",600],
+[1,"Зелье «я в домике»","Съесть","3 минуты безопасности: Сопротивление IV, Поглощение V, Регенерация III.",1100],
+[2,"Меч тени","Кинуть","Враг получает Тьму, Слабость и Замедление III.",500],
+[2,"Жемчуг охотника","Кинуть","Минута: Замедление IV и Слабость — враг не убежит и слабо бьёт.",450],
+[2,"Снежок ледяной тюрьмы","Кинуть","Минута: Замедление X и Усталость V — еле ходит и не может копать.",900],
+[2,"Глаз эндера-паралитика","Кинуть","Минута: Слепота, Замедление IV, Слабость.",700],
+[2,"Паучий кокон","Кинуть","Враг как статуя на минуту: Замедление X, Усталость V, плюс Тошнота.",1000],
+[2,"Яд болотной ведьмы","Кинуть","Отравление IV + Иссушение III + Слабость — здоровье утекает очень быстро.",800],
+[2,"Зелье «я не виноват»","Кинуть","Розыгрыш: Тошнота, Слепота, Замедление III.",300],
+[2,"Зелье «я просто мимо проходил»","Кинуть","Невидимость и Скорость IV на 10 секунд. Работает и на себя.",400],
+[2,"Зелье «это не я»","Кинуть","Слабость, Усталость IV и Слепота.",400],
+[3,"Снежок силы","Кинуть в друга","Минута: Сила IV и Скорость III. Хорош перед боем.",600],
+[3,"Жемчуг героя","Кинуть в друга","3 минуты: Герой деревни, Удача III, Спешка III.",800],
+[3,"Глаз ночного видения","Кинуть в друга","3 минуты: Ночное зрение и Дыхание под водой. Для шахт и океана.",400],
+[3,"Паучий эликсир","Кинуть в друга","Регенерация V (30 сек), Сопротивление III и Поглощение IV (1,5 мин).",900],
+[3,"Тростник прыжка","Кинуть в друга","Минута: Прыгучесть IV и Плавное падение. Для паркура.",350],
+[3,"Рыба фугу: полный буст","Кинуть в друга","45 секунд: Сила V, Скорость IV, Прыгучесть IV, Огнестойкость, Дыхание под водой.",1500],
+[4,"Хлеб предателя","Съесть","Отравление III и Голод V на минуту — еда перестаёт насыщать.",250],
+[4,"Печенька-маячок","Съесть","Минута: Свечение (видно сквозь стены) и Замедление III.",200],
+[4,"Сахарный приговор","Съесть","Тошнота, Тьма и Слабость III — мир крутится и темнеет.",350],
+[4,"Золотая морковка обмана","Съесть","2 минуты: Усталость VI и Замедление VI — жертва как статуя.",400],
+[4,"Тыквенный пирог-обманка","Съесть","Слепота, Тошнота и Слабость.",300],
+[4,"Арбуз-предатель","Съесть","1,5 минуты: Замедление VII и полный запрет прыжков.",450],
+[4,"Суп-катастрофа","Съесть","Иссушение III, Голод IV, Тошнота — реально жжёт здоровье.",400],
+[4,"Торт «С днём рождения, лох»","Съесть","Левитация 15 секунд (подбросит вверх), Тошнота, Замедление IV. Следи за падением.",350],
+[5,"Зелье Халка","Выпить","5 минут, 7 эффектов: Сила V, Сопротивление IV, Прыгучесть III, Регенерация III, Спешка III, Поглощение V, Скорость II.",3000],
+[5,"Тростник Халка","Съесть","Тот же баф Халка, но в виде съедобного тростника.",2800],
+[5,"Тростник-бомба","Кинуть в друга","Включает другу «режим Халка» на 5 минут.",3200],
+[5,"Снежок зла","Кинуть","Пакет дебафов: Иссушение, Отравление, Замедление, Слабость, Тьма.",1200],
+[5,"Железный слиток мощи","Съесть","1,5 минуты, 10 эффектов: почти все бафы сразу, включая Силу V и Регенерацию V.",4000],
+[5,"Съедобный тотем","Съесть","Регенерация II, Огнестойкость и Поглощение. Обычный тотем в руке работает как раньше.",1500],
+[5,"Алмаз-тотем","В инвентаре","Спасает от смерти прямо из инвентаря: снимает эффекты и даёт Регенерацию, Огнестойкость, Поглощение.",6000]
+];
+CATS.push(["Секретный магазин","🎭"]);
+var PR=[
+["Золотая морковка","Съесть","Золотая морковка и Скорость II на 30 секунд.",150],
+["Странный бутер","Съесть","Хлеб: Регенерация II (5 сек) и Тошнота (4 сек). Частицы скрыты, подвоха не видно.",200],
+["Супер-шаурма","Съесть","Скорость III на 10 секунд, потом Голод II на 20 секунд.",250],
+["Токсичный снежок","Кинуть","Выглядит как жемчуг Края, но это обычный снежок: эффектов нет, чистый розыгрыш.",30],
+["Снежок-путаница","Кинуть","Фиолетовый снежок без эффектов, шутка в названии.",25],
+["Зелье путаницы","Кинуть","Слепота на 3 секунды и Замедление III на 4,5 секунды.",350],
+["Ложная элитра","Надеть","Название врёт: это настоящая элитра с отделкой «шпиль» и вечной прочностью. Летает!",10000],
+["Проклятый клинок","Взять в руку","Незеритовый меч: Острота V, Прочность III. «Проклятие» только в названии.",3500],
+["Кирка удачи","Взять в руку","Каменная кирка: Удача III, Эффективность II.",1200],
+["Лёгкое зелье","Выпить","Левитация II на 10 секунд, потом падение и урон.",400]
+];
+PR.forEach(function(p){D.push([6,p[0],p[1],p[2]+" Версия с описанием.",p[3]]);D.push([6,p[0]+" (без описания)",p[1],p[2]+" Тот же предмет, но без текста в описании.",Math.round(p[3]*1.2/10)*10])});
+var cur=-1,qs="",so=0,SEC=false;
+function fmt(n){return String(n).replace(/\B(?=(\d{3})+(?!\d))/g," ")}
+function render(){
+var L=document.getElementById("list");L.innerHTML="";var n=0;
+CATS.forEach(function(c,ci){
+if(cur>=0&&cur!==ci)return;if(ci===6&&!SEC)return;
+var it=D.filter(function(d){return d[0]===ci&&d[1].toLowerCase().indexOf(qs)>-1});
+if(!it.length)return;n+=it.length;
+if(so==1)it.sort(function(a,b){return a[4]-b[4]});if(so==2)it.sort(function(a,b){return b[4]-a[4]});
+var h=document.createElement("div");h.className="sec";h.innerHTML="<h2>"+c[1]+" "+c[0]+" ("+it.length+")</h2>";L.appendChild(h);
+it.forEach(function(d){
+var k=document.createElement("div");k.className="card";
+var l=document.createElement("div");
+var t=document.createElement("span");t.className="tag";t.textContent=d[2];
+var h3=document.createElement("h3");h3.textContent=d[1];
+var p=document.createElement("p");p.textContent=d[3];
+l.appendChild(t);l.appendChild(h3);l.appendChild(p);
+var pr=document.createElement("div");pr.className="price";pr.textContent=fmt(d[4])+" "+CUR;
+var s=document.createElement("small");s.textContent="за 1 шт.";pr.appendChild(s);
+k.appendChild(l);k.appendChild(pr);L.appendChild(k)})});
+if(!n)L.innerHTML='<div class="empty">Ничего не найдено</div>'}
+var T=document.getElementById("tabs");
+[["Все","",-1]].concat(CATS.map(function(c,i){return [c[0],c[1],i]}).filter(function(t){return t[2]!==6})).forEach(function(t){
+var b=document.createElement("button");b.className="tab"+(t[2]===-1?" on":"");b.textContent=(t[1]?t[1]+" ":"")+t[0];
+b.onclick=function(){cur=t[2];[].forEach.call(T.children,function(x){x.classList.remove("on")});b.classList.add("on");render()};
+T.appendChild(b)});
+document.getElementById("q").oninput=function(){qs=this.value.toLowerCase().trim();render()};
+document.getElementById("s").onchange=function(){so=+this.value;render()};
+var tc=0,tt;
+function unlock(){SEC=true;var c=CATS[6],b=document.createElement("button");b.className="tab";b.textContent=c[1]+" "+c[0];b.onclick=function(){cur=6;[].forEach.call(T.children,function(x){x.classList.remove("on")});b.classList.add("on");render()};T.appendChild(b);b.click();T.scrollLeft=T.scrollWidth;var m=document.createElement("div");m.className="toast";m.textContent="🎭 Секретный магазин открыт!";document.body.appendChild(m);setTimeout(function(){m.remove()},2600)}
+document.querySelector("h1").onclick=function(){if(SEC)return;tc++;clearTimeout(tt);tt=setTimeout(function(){tc=0},1500);if(tc>=10){tc=0;unlock()}};
+render();
+</script>
+</body>
+</html>
